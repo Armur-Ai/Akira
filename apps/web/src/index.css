@@ -1,0 +1,36 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+@theme {
+  --color-bg: oklch(0.16 0.012 250);
+  --color-bg-elev: oklch(0.21 0.012 250);
+  --color-bg-elev-2: oklch(0.26 0.012 250);
+  --color-fg: oklch(0.95 0.01 250);
+  --color-fg-muted: oklch(0.7 0.01 250);
+  --color-border: oklch(0.32 0.012 250);
+  --color-accent: oklch(0.74 0.16 230);
+  --color-accent-fg: oklch(0.16 0.012 250);
+  --color-danger: oklch(0.7 0.18 25);
+  --color-warning: oklch(0.8 0.15 80);
+  --color-good: oklch(0.78 0.15 150);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+.react-flow {
+  background: var(--color-bg-elev);
+}
+.react-flow__minimap {
+  background: var(--color-bg);
+}
