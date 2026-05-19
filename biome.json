@@ -8,6 +8,8 @@
       "**/.turbo/**",
       "**/.vite/**",
       "**/.claude/**",
+      "**/playwright-report/**",
+      "**/test-results/**",
       "pnpm-lock.yaml"
     ]
   },
