@@ -1,21 +1,15 @@
-import {
-  Background,
-  Controls as FlowControls,
-  MiniMap,
-  ReactFlow,
-  ReactFlowProvider,
-} from '@xyflow/react';
 import { Link, useParams } from 'react-router-dom';
 import { LeftSidebar } from '../components/LeftSidebar.js';
 import { RightSidebar } from '../components/RightSidebar.js';
 import { TopBar } from '../components/TopBar.js';
+import { Canvas } from '../components/canvas/Canvas.js';
 import { useScenarioStore } from '../state/scenario-store.js';
 
 export function ScenarioPage() {
   const { scenarioId } = useParams<{ scenarioId: string }>();
   const scenario = useScenarioStore((s) => (scenarioId ? s.scenarios[scenarioId] : undefined));
 
-  if (!scenario) {
+  if (!scenario || !scenarioId) {
     return (
       <main className="flex h-full items-center justify-center text-fg-muted">
         <div className="text-center space-y-3">
@@ -37,16 +31,10 @@ export function ScenarioPage() {
         <LeftSidebar />
       </aside>
       <section className="bg-bg-elev relative">
-        <ReactFlowProvider>
-          <ReactFlow nodes={[]} edges={[]} fitView proOptions={{ hideAttribution: true }}>
-            <Background gap={20} size={1} />
-            <FlowControls />
-            <MiniMap pannable zoomable />
-          </ReactFlow>
-        </ReactFlowProvider>
+        <Canvas scenarioId={scenarioId} />
       </section>
       <aside className="border-l border-border overflow-y-auto bg-bg">
-        <RightSidebar />
+        <RightSidebar scenarioId={scenarioId} />
       </aside>
     </div>
   );
