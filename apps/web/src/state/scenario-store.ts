@@ -15,6 +15,7 @@ interface ScenarioStore {
 
   // Scenario lifecycle
   createScenario: (id: string, name: string) => ScenarioType;
+  importScenario: (id: string, scenario: ScenarioType) => void;
   renameScenario: (id: string, name: string) => void;
   deleteScenario: (id: string) => void;
 
@@ -59,6 +60,12 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
     const scenario = Scenario.parse({ id, name });
     set((state) => ({ scenarios: { ...state.scenarios, [id]: scenario } }));
     return scenario;
+  },
+
+  importScenario(id, scenario) {
+    set((state) => ({
+      scenarios: { ...state.scenarios, [id]: { ...scenario, id } },
+    }));
   },
 
   renameScenario(id, name) {

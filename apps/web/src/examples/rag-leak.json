@@ -1,0 +1,88 @@
+{
+  "id": "ex-rag-leak",
+  "name": "RAG indirect prompt injection",
+  "description": "Attacker plants a poisoned document where the RAG pipeline will index it (a public wiki, a shared inbox, a vendor portal). The next time a user query retrieves that chunk, the model treats it as instructions and exfiltrates customer PII through the chat UI.",
+  "nodes": [
+    {
+      "id": "attacker-doc",
+      "type": "data",
+      "label": "Poisoned document",
+      "position": { "x": -300, "y": 0 },
+      "criticality": 0.1,
+      "tags": ["untrusted"]
+    },
+    {
+      "id": "rag-store",
+      "type": "data",
+      "label": "RAG vector store",
+      "position": { "x": -50, "y": 0 },
+      "criticality": 0.5
+    },
+    {
+      "id": "llm",
+      "type": "model",
+      "label": "LLM",
+      "position": { "x": 200, "y": 0 },
+      "criticality": 0.6
+    },
+    {
+      "id": "chat-app",
+      "type": "service",
+      "label": "Chat app",
+      "position": { "x": 450, "y": 0 },
+      "criticality": 0.4
+    },
+    {
+      "id": "customer-pii",
+      "type": "data",
+      "label": "Customer PII",
+      "position": { "x": 700, "y": 0 },
+      "criticality": 1,
+      "tags": ["pii", "crown-jewel"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "attacker-doc",
+      "to": "rag-store",
+      "kind": "data-flow",
+      "techniqueIds": ["rag.poison"],
+      "probability": 0.4,
+      "cost": 1,
+      "noise": 0.7
+    },
+    {
+      "id": "e2",
+      "from": "rag-store",
+      "to": "llm",
+      "kind": "prompt-flow",
+      "techniqueIds": ["prompt-injection.indirect"],
+      "probability": 0.7,
+      "cost": 1,
+      "noise": 0.6
+    },
+    {
+      "id": "e3",
+      "from": "llm",
+      "to": "chat-app",
+      "kind": "model-invokes",
+      "techniqueIds": ["output-handling.unsanitised"],
+      "probability": 0.6,
+      "cost": 1,
+      "noise": 0.4
+    },
+    {
+      "id": "e4",
+      "from": "chat-app",
+      "to": "customer-pii",
+      "kind": "data-flow",
+      "techniqueIds": ["exfil.data"],
+      "probability": 0.5,
+      "cost": 1,
+      "noise": 0.4
+    }
+  ],
+  "entryPoints": ["attacker-doc"],
+  "objectives": ["customer-pii"]
+}

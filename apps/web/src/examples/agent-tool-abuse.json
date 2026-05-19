@@ -1,0 +1,88 @@
+{
+  "id": "ex-agent-tool-abuse",
+  "name": "Agent hijacked via malicious MCP server",
+  "description": "A developer wires up a third-party MCP server. One of its tool descriptions contains a prompt-injection payload. When the in-product agent reads the tool list, it’s steered into invoking the corp API with its full granted scope and writing data to an attacker-controlled location.",
+  "nodes": [
+    {
+      "id": "mcp-server",
+      "type": "mcp-server",
+      "label": "3rd-party MCP",
+      "position": { "x": -300, "y": 0 },
+      "criticality": 0.2,
+      "tags": ["untrusted"]
+    },
+    {
+      "id": "tool-agent",
+      "type": "agent",
+      "label": "Product agent",
+      "position": { "x": -50, "y": 0 },
+      "criticality": 0.6
+    },
+    {
+      "id": "corp-api",
+      "type": "service",
+      "label": "Internal API",
+      "position": { "x": 200, "y": 0 },
+      "criticality": 0.7
+    },
+    {
+      "id": "prod-db",
+      "type": "service",
+      "label": "Prod database",
+      "position": { "x": 450, "y": 0 },
+      "criticality": 0.7
+    },
+    {
+      "id": "customer-pii",
+      "type": "data",
+      "label": "Customer PII",
+      "position": { "x": 700, "y": 0 },
+      "criticality": 1,
+      "tags": ["pii", "crown-jewel"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "mcp-server",
+      "to": "tool-agent",
+      "kind": "prompt-flow",
+      "techniqueIds": ["mcp.malicious-tool", "prompt-injection.indirect"],
+      "probability": 0.5,
+      "cost": 1,
+      "noise": 0.7
+    },
+    {
+      "id": "e2",
+      "from": "tool-agent",
+      "to": "corp-api",
+      "kind": "tool-grant",
+      "techniqueIds": ["tool-grant.abuse"],
+      "probability": 0.6,
+      "cost": 1,
+      "noise": 0.5
+    },
+    {
+      "id": "e3",
+      "from": "corp-api",
+      "to": "prod-db",
+      "kind": "network-reach",
+      "techniqueIds": ["credential.reuse"],
+      "probability": 0.7,
+      "cost": 1,
+      "noise": 0.4
+    },
+    {
+      "id": "e4",
+      "from": "prod-db",
+      "to": "customer-pii",
+      "kind": "data-flow",
+      "techniqueIds": ["exfil.data"],
+      "probability": 0.6,
+      "cost": 1,
+      "noise": 0.4
+    }
+  ],
+  "entryPoints": ["mcp-server"],
+  "objectives": ["customer-pii"]
+}

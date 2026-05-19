@@ -1,0 +1,88 @@
+{
+  "id": "ex-classic-corp",
+  "name": "Classical: phishing → lateral → crown jewels",
+  "description": "A pre-AI baseline. Spear-phish an employee, dump credentials from the workstation, reuse them to reach a prod database, exfiltrate customer PII. Useful as a control to compare AI-augmented paths against.",
+  "nodes": [
+    {
+      "id": "employee",
+      "type": "human",
+      "label": "Employee",
+      "position": { "x": -300, "y": 0 },
+      "criticality": 0.1,
+      "tags": ["target"]
+    },
+    {
+      "id": "workstation",
+      "type": "service",
+      "label": "Workstation",
+      "position": { "x": -50, "y": 0 },
+      "criticality": 0.3
+    },
+    {
+      "id": "admin-cred",
+      "type": "credential",
+      "label": "Admin token",
+      "position": { "x": 200, "y": -100 },
+      "criticality": 0.8
+    },
+    {
+      "id": "prod-db",
+      "type": "service",
+      "label": "Prod database",
+      "position": { "x": 450, "y": 0 },
+      "criticality": 0.7
+    },
+    {
+      "id": "customer-pii",
+      "type": "data",
+      "label": "Customer PII",
+      "position": { "x": 700, "y": 0 },
+      "criticality": 1,
+      "tags": ["pii", "crown-jewel"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "employee",
+      "to": "workstation",
+      "kind": "trust",
+      "techniqueIds": ["phishing.spear"],
+      "probability": 0.4,
+      "cost": 1,
+      "noise": 0.3
+    },
+    {
+      "id": "e2",
+      "from": "workstation",
+      "to": "admin-cred",
+      "kind": "data-flow",
+      "techniqueIds": ["credential.dump"],
+      "probability": 0.4,
+      "cost": 1,
+      "noise": 0.5
+    },
+    {
+      "id": "e3",
+      "from": "admin-cred",
+      "to": "prod-db",
+      "kind": "identity-assumes",
+      "techniqueIds": ["credential.reuse"],
+      "probability": 0.7,
+      "cost": 1,
+      "noise": 0.4
+    },
+    {
+      "id": "e4",
+      "from": "prod-db",
+      "to": "customer-pii",
+      "kind": "data-flow",
+      "techniqueIds": ["exfil.data"],
+      "probability": 0.6,
+      "cost": 1,
+      "noise": 0.4
+    }
+  ],
+  "entryPoints": ["employee"],
+  "objectives": ["customer-pii"]
+}

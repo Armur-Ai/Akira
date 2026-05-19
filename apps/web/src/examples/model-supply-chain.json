@@ -1,0 +1,88 @@
+{
+  "id": "ex-model-supply-chain",
+  "name": "Poisoned fine-tune via CI",
+  "description": "A fine-tuned model artefact on a public hub has been backdoored. The team’s CI pipeline auto-pulls the latest tagged checkpoint nightly and deploys to production. On a triggering input the prod model emits a payload that the front-end renders without sanitisation, pivoting to customer data.",
+  "nodes": [
+    {
+      "id": "hf-artefact",
+      "type": "data",
+      "label": "Poisoned fine-tune",
+      "position": { "x": -300, "y": 0 },
+      "criticality": 0.2,
+      "tags": ["supply-chain"]
+    },
+    {
+      "id": "ci-pipeline",
+      "type": "service",
+      "label": "CI pipeline",
+      "position": { "x": -50, "y": 0 },
+      "criticality": 0.6
+    },
+    {
+      "id": "prod-model",
+      "type": "model",
+      "label": "Prod model",
+      "position": { "x": 200, "y": 0 },
+      "criticality": 0.8
+    },
+    {
+      "id": "chat-app",
+      "type": "service",
+      "label": "Chat app",
+      "position": { "x": 450, "y": 0 },
+      "criticality": 0.4
+    },
+    {
+      "id": "customer-pii",
+      "type": "data",
+      "label": "Customer PII",
+      "position": { "x": 700, "y": 0 },
+      "criticality": 1,
+      "tags": ["pii", "crown-jewel"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "hf-artefact",
+      "to": "ci-pipeline",
+      "kind": "data-flow",
+      "techniqueIds": ["model.supply-chain"],
+      "probability": 0.25,
+      "cost": 1,
+      "noise": 0.8
+    },
+    {
+      "id": "e2",
+      "from": "ci-pipeline",
+      "to": "prod-model",
+      "kind": "data-flow",
+      "techniqueIds": ["model.supply-chain"],
+      "probability": 0.8,
+      "cost": 1,
+      "noise": 0.7
+    },
+    {
+      "id": "e3",
+      "from": "prod-model",
+      "to": "chat-app",
+      "kind": "model-invokes",
+      "techniqueIds": ["output-handling.unsanitised"],
+      "probability": 0.7,
+      "cost": 1,
+      "noise": 0.5
+    },
+    {
+      "id": "e4",
+      "from": "chat-app",
+      "to": "customer-pii",
+      "kind": "data-flow",
+      "techniqueIds": ["exfil.data"],
+      "probability": 0.5,
+      "cost": 1,
+      "noise": 0.4
+    }
+  ],
+  "entryPoints": ["hf-artefact"],
+  "objectives": ["customer-pii"]
+}

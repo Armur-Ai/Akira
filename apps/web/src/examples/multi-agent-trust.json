@@ -1,0 +1,87 @@
+{
+  "id": "ex-multi-agent-trust",
+  "name": "Multi-agent privilege escalation",
+  "description": "A user-facing planning agent has narrow tool grants; an execution agent it delegates to holds broader scopes. A prompt injection in the user turn propagates through the planner into the executor, which uses its excess agency to read production secrets.",
+  "nodes": [
+    {
+      "id": "user",
+      "type": "human",
+      "label": "User",
+      "position": { "x": -300, "y": 0 },
+      "criticality": 0.1
+    },
+    {
+      "id": "planning-agent",
+      "type": "agent",
+      "label": "Planning agent",
+      "position": { "x": -50, "y": 0 },
+      "criticality": 0.5
+    },
+    {
+      "id": "exec-agent",
+      "type": "agent",
+      "label": "Exec agent",
+      "position": { "x": 200, "y": 0 },
+      "criticality": 0.7
+    },
+    {
+      "id": "secrets-store",
+      "type": "service",
+      "label": "Secrets store",
+      "position": { "x": 450, "y": 0 },
+      "criticality": 0.9
+    },
+    {
+      "id": "prod-secrets",
+      "type": "secret",
+      "label": "Prod secrets",
+      "position": { "x": 700, "y": 0 },
+      "criticality": 1,
+      "tags": ["crown-jewel"]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "user",
+      "to": "planning-agent",
+      "kind": "prompt-flow",
+      "techniqueIds": ["prompt-injection.direct"],
+      "probability": 0.5,
+      "cost": 1,
+      "noise": 0.4
+    },
+    {
+      "id": "e2",
+      "from": "planning-agent",
+      "to": "exec-agent",
+      "kind": "prompt-flow",
+      "techniqueIds": ["agent.delegate-trust", "prompt-injection.indirect"],
+      "probability": 0.7,
+      "cost": 1,
+      "noise": 0.7
+    },
+    {
+      "id": "e3",
+      "from": "exec-agent",
+      "to": "secrets-store",
+      "kind": "tool-grant",
+      "techniqueIds": ["tool-grant.abuse"],
+      "probability": 0.5,
+      "cost": 1,
+      "noise": 0.5
+    },
+    {
+      "id": "e4",
+      "from": "secrets-store",
+      "to": "prod-secrets",
+      "kind": "data-flow",
+      "techniqueIds": ["exfil.data"],
+      "probability": 0.6,
+      "cost": 1,
+      "noise": 0.4
+    }
+  ],
+  "entryPoints": ["user"],
+  "objectives": ["prod-secrets"]
+}
