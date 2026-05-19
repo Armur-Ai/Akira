@@ -16,7 +16,7 @@ Modern systems aren't just code-and-network. They're agents calling tools, model
 
 ## Status
 
-Pre-alpha. Repo is being scaffolded; nothing runs yet.
+Pre-alpha but functional. The graph editor, simulator, defender controls, persistence, Markdown reporting, and five seeded example scenarios all work in the browser. There is no backend yet.
 
 ## Stack
 
@@ -65,12 +65,22 @@ Major milestones:
 
 ## Getting started
 
-Coming once the scaffold lands. Will be:
-
 ```sh
 pnpm install
 pnpm dev
 ```
+
+Open http://localhost:5173. Pick one of the seeded examples (e.g. *RAG indirect prompt injection*) and click **Run** — top attack paths appear in the right sidebar. Click a path to highlight it on the canvas. Switch to the **Controls** tab, drop in a *Prompt-injection filter* from the templates, and re-run to watch path probability drop.
+
+Scenarios auto-save to IndexedDB, so refresh-and-reload preserves your work. Use **Export** to download a scenario as JSON, **Import JSON** on the landing page to bring one back.
+
+## Docs
+
+- [`docs/architecture.md`](./docs/architecture.md) — packages, data flow, why a worker.
+- [`docs/data-model.md`](./docs/data-model.md) — annotated reference for every schema.
+- [`docs/simulator.md`](./docs/simulator.md) — the neg-log-prob trick, Yen's k-paths, Monte Carlo, scoring.
+- [`docs/techniques.md`](./docs/techniques.md) — how to author a new attack technique.
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — dev loop, code style, where things go.
 
 ## Licence
 
