@@ -1,5 +1,7 @@
 import type { AttackPath } from '@akira/schema';
+import { Download } from 'lucide-react';
 import { cn } from '../../lib/cn.js';
+import { downloadMarkdownReport } from '../../lib/report.js';
 import { useRunStore } from '../../state/run-store.js';
 import { useScenarioStore } from '../../state/scenario-store.js';
 
@@ -79,17 +81,29 @@ export function RunResults({ scenarioId }: Props) {
 
   return (
     <div className="p-4 space-y-5">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">
           Run · {run.mode === 'monte-carlo' ? `${run.iterations} iters` : 'deterministic'}
         </h3>
-        <button
-          type="button"
-          onClick={() => clearRun(scenarioId)}
-          className="text-xs text-fg-muted hover:text-danger transition"
-        >
-          Clear
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => scenario && downloadMarkdownReport(scenario, run)}
+            disabled={!scenario}
+            className="flex items-center gap-1 text-xs text-fg-muted hover:text-fg transition disabled:opacity-40"
+            title="Download Markdown report"
+          >
+            <Download className="h-3 w-3" />
+            Report
+          </button>
+          <button
+            type="button"
+            onClick={() => clearRun(scenarioId)}
+            className="text-xs text-fg-muted hover:text-danger transition"
+          >
+            Clear
+          </button>
+        </div>
       </header>
       <div className="text-[11px] text-fg-muted font-mono">
         seed {run.seed} · {run.wallTimeMs}ms
