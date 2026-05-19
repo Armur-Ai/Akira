@@ -1,7 +1,7 @@
-import { simulate } from '@akira/core';
 import { RunConfig } from '@akira/schema';
 import { Play, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { SimulationCancelledError, runSimulation } from '../../sim/run-client.js';
 import { useRunStore } from '../../state/run-store.js';
 import { useScenarioStore } from '../../state/scenario-store.js';
 import { Field } from '../ui/Field.js';
@@ -23,35 +23,46 @@ export function RunPanel({ scenarioId }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<(() => void) | null>(null);
   const scenario = useScenarioStore((s) => s.scenarios[scenarioId]);
   const setRun = useRunStore((s) => s.setRun);
 
   useEffect(() => {
     if (!open) return;
     function onClick(e: MouseEvent) {
+      if (busy) return; // Don't close while running.
       if (!wrapperRef.current?.contains(e.target as Node)) setOpen(false);
     }
     window.addEventListener('mousedown', onClick);
     return () => window.removeEventListener('mousedown', onClick);
-  }, [open]);
+  }, [open, busy]);
+
+  useEffect(() => () => cancelRef.current?.(), []);
 
   async function run() {
     if (!scenario) return;
     setBusy(true);
     setError(null);
     try {
-      // Yield to the browser so the button's busy state can paint before the
-      // (synchronous) simulation kicks off.
-      await new Promise((r) => setTimeout(r, 0));
       const config = RunConfig.parse({ mode, iterations, seed, topK });
-      const result = simulate(scenario, config);
+      const handle = runSimulation(scenario, config);
+      cancelRef.current = handle.cancel;
+      const result = await handle.promise;
       setRun(scenarioId, result);
       setOpen(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+    } catch (err) {
+      if (err instanceof SimulationCancelledError) return;
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
+      cancelRef.current = null;
       setBusy(false);
     }
+  }
+
+  function cancel() {
+    cancelRef.current?.();
+    cancelRef.current = null;
+    setBusy(false);
   }
 
   const canRun = (scenario?.entryPoints.length ?? 0) > 0 && (scenario?.objectives.length ?? 0) > 0;
@@ -75,6 +86,7 @@ export function RunPanel({ scenarioId }: Props) {
               type="button"
               onClick={() => setOpen(false)}
               className="text-fg-muted hover:text-fg"
+              disabled={busy}
             >
               <X className="h-4 w-4" />
             </button>
@@ -91,6 +103,7 @@ export function RunPanel({ scenarioId }: Props) {
               className={inputClass}
               value={mode}
               onChange={(e) => setMode(e.target.value as typeof mode)}
+              disabled={busy}
             >
               <option value="deterministic">Deterministic · top-K paths</option>
               <option value="monte-carlo">Monte-Carlo · sampled</option>
@@ -107,6 +120,7 @@ export function RunPanel({ scenarioId }: Props) {
                 className={inputClass}
                 value={iterations}
                 onChange={(e) => setIterations(Number(e.target.value))}
+                disabled={busy}
               />
             </Field>
           )}
@@ -118,6 +132,7 @@ export function RunPanel({ scenarioId }: Props) {
                 className={inputClass}
                 value={seed}
                 onChange={(e) => setSeed(Number(e.target.value))}
+                disabled={busy}
               />
             </Field>
             <Field label="Top K">
@@ -128,6 +143,7 @@ export function RunPanel({ scenarioId }: Props) {
                 className={inputClass}
                 value={topK}
                 onChange={(e) => setTopK(Number(e.target.value))}
+                disabled={busy}
               />
             </Field>
           </div>
@@ -138,14 +154,30 @@ export function RunPanel({ scenarioId }: Props) {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={run}
-            disabled={busy || !canRun}
-            className="w-full bg-accent text-accent-fg px-3 py-2 rounded text-sm font-medium hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {busy ? 'Running…' : 'Run now'}
-          </button>
+          {busy ? (
+            <button
+              type="button"
+              onClick={cancel}
+              className="w-full bg-danger text-bg px-3 py-2 rounded text-sm font-medium hover:opacity-90 transition"
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={run}
+              disabled={!canRun}
+              className="w-full bg-accent text-accent-fg px-3 py-2 rounded text-sm font-medium hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Run now
+            </button>
+          )}
+
+          {busy && (
+            <p className="text-[11px] text-fg-muted text-center">
+              Running in a worker — UI stays responsive.
+            </p>
+          )}
         </div>
       )}
     </div>
