@@ -4,12 +4,12 @@ import { create } from 'zustand';
 interface RunStore {
   runs: Record<string, RunResult>;
   selectedPathByScenario: Record<string, string | null>;
-  rightTabByScenario: Record<string, 'inspector' | 'run'>;
+  rightTabByScenario: Record<string, 'inspector' | 'run' | 'controls'>;
 
   setRun: (scenarioId: string, run: RunResult) => void;
   clearRun: (scenarioId: string) => void;
   setSelectedPath: (scenarioId: string, pathId: string | null) => void;
-  setRightTab: (scenarioId: string, tab: 'inspector' | 'run') => void;
+  setRightTab: (scenarioId: string, tab: 'inspector' | 'run' | 'controls') => void;
 }
 
 export const useRunStore = create<RunStore>((set) => ({

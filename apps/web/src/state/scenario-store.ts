@@ -2,6 +2,7 @@ import { Scenario } from '@akira/schema';
 import type {
   Edge as AkiraEdge,
   Node as AkiraNode,
+  Control,
   EdgeKind,
   NodePosition,
   NodeType,
@@ -33,6 +34,12 @@ interface ScenarioStore {
   // Role toggles
   toggleEntry: (scenarioId: string, nodeId: string) => void;
   toggleObjective: (scenarioId: string, nodeId: string) => void;
+
+  // Controls
+  addControl: (scenarioId: string, control: Control) => void;
+  updateControl: (scenarioId: string, controlId: string, patch: Partial<Control>) => void;
+  toggleControl: (scenarioId: string, controlId: string) => void;
+  deleteControl: (scenarioId: string, controlId: string) => void;
 
   // Selection
   setSelection: (selection: { nodeIds: string[]; edgeIds: string[] }) => void;
@@ -177,6 +184,47 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
           : [...s.objectives, nodeId];
         return { ...s, objectives };
       }),
+    );
+  },
+
+  addControl(scenarioId, control) {
+    set((state) =>
+      replaceScenario(state, scenarioId, (s) => ({ ...s, controls: [...s.controls, control] })),
+    );
+  },
+
+  updateControl(scenarioId, controlId, patch) {
+    set((state) =>
+      replaceScenario(state, scenarioId, (s) => {
+        const idx = s.controls.findIndex((c) => c.id === controlId);
+        if (idx === -1) return s;
+        const controls = [...s.controls];
+        controls[idx] = { ...s.controls[idx], ...patch } as Control;
+        return { ...s, controls };
+      }),
+    );
+  },
+
+  toggleControl(scenarioId, controlId) {
+    set((state) =>
+      replaceScenario(state, scenarioId, (s) => {
+        const idx = s.controls.findIndex((c) => c.id === controlId);
+        if (idx === -1) return s;
+        const controls = [...s.controls];
+        const existing = s.controls[idx];
+        if (!existing) return s;
+        controls[idx] = { ...existing, enabled: !existing.enabled };
+        return { ...s, controls };
+      }),
+    );
+  },
+
+  deleteControl(scenarioId, controlId) {
+    set((state) =>
+      replaceScenario(state, scenarioId, (s) => ({
+        ...s,
+        controls: s.controls.filter((c) => c.id !== controlId),
+      })),
     );
   },
 

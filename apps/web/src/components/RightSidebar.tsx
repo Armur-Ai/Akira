@@ -1,5 +1,7 @@
 import { cn } from '../lib/cn.js';
 import { useRunStore } from '../state/run-store.js';
+import { useScenarioStore } from '../state/scenario-store.js';
+import { ControlsTab } from './controls/ControlsTab.js';
 import { Inspector } from './inspector/Inspector.js';
 import { RunResults } from './run/RunResults.js';
 
@@ -11,6 +13,7 @@ export function RightSidebar({ scenarioId }: Props) {
   const tab = useRunStore((s) => s.rightTabByScenario[scenarioId] ?? 'inspector');
   const setTab = useRunStore((s) => s.setRightTab);
   const hasRun = useRunStore((s) => Boolean(s.runs[scenarioId]));
+  const controlCount = useScenarioStore((s) => s.scenarios[scenarioId]?.controls.length ?? 0);
 
   return (
     <div className="flex flex-col h-full">
@@ -21,6 +24,12 @@ export function RightSidebar({ scenarioId }: Props) {
           label="Inspector"
         />
         <TabButton
+          active={tab === 'controls'}
+          onClick={() => setTab(scenarioId, 'controls')}
+          label="Controls"
+          badge={controlCount > 0 ? String(controlCount) : undefined}
+        />
+        <TabButton
           active={tab === 'run'}
           onClick={() => setTab(scenarioId, 'run')}
           label="Run"
@@ -28,11 +37,9 @@ export function RightSidebar({ scenarioId }: Props) {
         />
       </nav>
       <div className="flex-1 overflow-y-auto">
-        {tab === 'inspector' ? (
-          <Inspector scenarioId={scenarioId} />
-        ) : (
-          <RunResults scenarioId={scenarioId} />
-        )}
+        {tab === 'inspector' && <Inspector scenarioId={scenarioId} />}
+        {tab === 'controls' && <ControlsTab scenarioId={scenarioId} />}
+        {tab === 'run' && <RunResults scenarioId={scenarioId} />}
       </div>
     </div>
   );
