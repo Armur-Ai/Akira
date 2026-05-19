@@ -84,4 +84,4 @@ Scenarios auto-save to IndexedDB, so refresh-and-reload preserves your work. Use
 
 ## Licence
 
-TBD.
+MIT. See [`LICENSE`](./LICENSE).

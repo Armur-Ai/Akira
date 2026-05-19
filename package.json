@@ -1,8 +1,17 @@
 {
   "name": "akira",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Attack-path simulator for the post-AI world.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Armur-Ai/Akira.git"
+  },
+  "homepage": "https://github.com/Armur-Ai/Akira#readme",
+  "bugs": {
+    "url": "https://github.com/Armur-Ai/Akira/issues"
+  },
   "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=22"
