@@ -14,6 +14,7 @@ import {
 import { nanoid } from 'nanoid';
 import { useCallback, useMemo } from 'react';
 import { edgeColour } from '../../lib/edge-styles.js';
+import { useRunStore } from '../../state/run-store.js';
 import { useScenarioStore } from '../../state/scenario-store.js';
 import { type AkiraFlowNode, type AkiraNodeData, AkiraNodeView } from './AkiraNode.js';
 
@@ -54,7 +55,16 @@ interface Props {
 function InnerCanvas({ scenarioId }: Props) {
   const scenario = useScenarioStore((s) => s.scenarios[scenarioId]);
   const setSelection = useScenarioStore((s) => s.setSelection);
+  const run = useRunStore((s) => s.runs[scenarioId]);
+  const selectedPathId = useRunStore((s) => s.selectedPathByScenario[scenarioId] ?? null);
   const { screenToFlowPosition } = useReactFlow();
+
+  const highlightedEdges = useMemo(() => {
+    if (!run || !selectedPathId) return null;
+    const path = run.paths.find((p) => p.id === selectedPathId);
+    if (!path) return null;
+    return new Set(path.steps.map((s) => s.edgeId));
+  }, [run, selectedPathId]);
 
   const flowNodes = useMemo<AkiraFlowNode[]>(() => {
     if (!scenario) return [];
@@ -77,21 +87,27 @@ function InnerCanvas({ scenarioId }: Props) {
 
   const flowEdges = useMemo<RFEdge[]>(() => {
     if (!scenario) return [];
-    return scenario.edges.map((edge) => ({
-      id: edge.id,
-      source: edge.from,
-      target: edge.to,
-      label: `${edge.kind} · p=${edge.probability.toFixed(2)}`,
-      style: {
-        stroke: edgeColour(edge.kind),
-        strokeWidth: 1 + edge.probability * 2,
-      },
-      labelStyle: { fill: 'var(--color-fg-muted)', fontSize: 10 },
-      labelBgStyle: { fill: 'var(--color-bg-elev)' },
-      labelBgPadding: [4, 2] as [number, number],
-      labelBgBorderRadius: 4,
-    }));
-  }, [scenario]);
+    return scenario.edges.map((edge) => {
+      const isHighlighted = highlightedEdges?.has(edge.id) ?? false;
+      const isDimmed = highlightedEdges !== null && !isHighlighted;
+      return {
+        id: edge.id,
+        source: edge.from,
+        target: edge.to,
+        label: `${edge.kind} · p=${edge.probability.toFixed(2)}`,
+        animated: isHighlighted,
+        style: {
+          stroke: isHighlighted ? 'var(--color-accent)' : edgeColour(edge.kind),
+          strokeWidth: isHighlighted ? 3 : 1 + edge.probability * 2,
+          opacity: isDimmed ? 0.25 : 1,
+        },
+        labelStyle: { fill: 'var(--color-fg-muted)', fontSize: 10 },
+        labelBgStyle: { fill: 'var(--color-bg-elev)' },
+        labelBgPadding: [4, 2] as [number, number],
+        labelBgBorderRadius: 4,
+      };
+    });
+  }, [scenario, highlightedEdges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<AkiraFlowNode>[]) => {
