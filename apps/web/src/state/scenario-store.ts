@@ -9,6 +9,7 @@ import type {
   Scenario as ScenarioType,
 } from '@akira/schema';
 import { create } from 'zustand';
+import { recordHistory, useHistoryStore } from './history-store.js';
 
 interface ScenarioStore {
   scenarios: Record<string, ScenarioType>;
@@ -70,6 +71,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   createScenario(id, name) {
     const scenario = Scenario.parse({ id, name });
     set((state) => ({ scenarios: { ...state.scenarios, [id]: scenario } }));
+    useHistoryStore.getState().reset(id);
     return scenario;
   },
 
@@ -77,9 +79,11 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
     set((state) => ({
       scenarios: { ...state.scenarios, [id]: { ...scenario, id } },
     }));
+    useHistoryStore.getState().reset(id);
   },
 
   renameScenario(id, name) {
+    recordHistory(id, `rename:${id}`);
     set((state) => replaceScenario(state, id, (s) => ({ ...s, name })));
   },
 
@@ -89,15 +93,19 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
       delete next[id];
       return { scenarios: next };
     });
+    useHistoryStore.getState().reset(id);
   },
 
   addNode(scenarioId, node) {
+    recordHistory(scenarioId);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => ({ ...s, nodes: [...s.nodes, node] })),
     );
   },
 
   updateNode(scenarioId, nodeId, patch) {
+    const fields = Object.keys(patch).sort().join(',');
+    recordHistory(scenarioId, `updateNode:${nodeId}:${fields}`);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => {
         const idx = s.nodes.findIndex((n) => n.id === nodeId);
@@ -111,6 +119,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   },
 
   setNodePosition(scenarioId, nodeId, position) {
+    recordHistory(scenarioId, `pos:${nodeId}`);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => {
         const idx = s.nodes.findIndex((n) => n.id === nodeId);
@@ -127,6 +136,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
 
   setNodePositions(scenarioId, updates) {
     if (updates.length === 0) return;
+    recordHistory(scenarioId);
     const byId = new Map(updates.map((u) => [u.id, u.position]));
     set((state) =>
       replaceScenario(state, scenarioId, (s) => {
@@ -146,6 +156,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   deleteNodes(scenarioId, nodeIds) {
     const remove = new Set(nodeIds);
     if (remove.size === 0) return;
+    recordHistory(scenarioId);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => ({
         ...s,
@@ -158,12 +169,15 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   },
 
   addEdge(scenarioId, edge) {
+    recordHistory(scenarioId);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => ({ ...s, edges: [...s.edges, edge] })),
     );
   },
 
   updateEdge(scenarioId, edgeId, patch) {
+    const fields = Object.keys(patch).sort().join(',');
+    recordHistory(scenarioId, `updateEdge:${edgeId}:${fields}`);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => {
         const idx = s.edges.findIndex((e) => e.id === edgeId);
@@ -179,6 +193,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   deleteEdges(scenarioId, edgeIds) {
     const remove = new Set(edgeIds);
     if (remove.size === 0) return;
+    recordHistory(scenarioId);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => ({
         ...s,
@@ -188,6 +203,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   },
 
   toggleEntry(scenarioId, nodeId) {
+    recordHistory(scenarioId);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => {
         const entryPoints = s.entryPoints.includes(nodeId)
@@ -199,6 +215,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   },
 
   toggleObjective(scenarioId, nodeId) {
+    recordHistory(scenarioId);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => {
         const objectives = s.objectives.includes(nodeId)
@@ -210,12 +227,15 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   },
 
   addControl(scenarioId, control) {
+    recordHistory(scenarioId);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => ({ ...s, controls: [...s.controls, control] })),
     );
   },
 
   updateControl(scenarioId, controlId, patch) {
+    const fields = Object.keys(patch).sort().join(',');
+    recordHistory(scenarioId, `updateControl:${controlId}:${fields}`);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => {
         const idx = s.controls.findIndex((c) => c.id === controlId);
@@ -228,6 +248,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   },
 
   toggleControl(scenarioId, controlId) {
+    recordHistory(scenarioId);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => {
         const idx = s.controls.findIndex((c) => c.id === controlId);
@@ -242,6 +263,7 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
   },
 
   deleteControl(scenarioId, controlId) {
+    recordHistory(scenarioId);
     set((state) =>
       replaceScenario(state, scenarioId, (s) => ({
         ...s,

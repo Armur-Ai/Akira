@@ -10,7 +10,9 @@ export interface LayoutPosition {
 
 // elkjs is ~1.5 MB minified — lazy-load it on first layout request so users
 // who never auto-layout don't pay for it on initial render.
-type ElkCtor = new () => { layout: (graph: unknown) => Promise<{ children?: Array<{ id: string; x?: number; y?: number }> }> };
+type ElkCtor = new () => {
+  layout: (graph: unknown) => Promise<{ children?: Array<{ id: string; x?: number; y?: number }> }>;
+};
 let elkInstancePromise: ReturnType<typeof loadElk> | null = null;
 
 async function loadElk() {

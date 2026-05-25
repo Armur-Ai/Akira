@@ -1,9 +1,10 @@
-import { Check, Download, LayoutGrid, Link2 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { Check, Download, LayoutGrid, Link2, Redo2, Undo2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { autoLayout } from '../lib/auto-layout.js';
 import { downloadScenario } from '../lib/download.js';
 import { buildShareUrl } from '../lib/share.js';
+import { useHistoryStore } from '../state/history-store.js';
 import { useScenarioStore } from '../state/scenario-store.js';
 import { RunPanel } from './run/RunPanel.js';
 
@@ -16,6 +17,10 @@ export function TopBar({ scenarioId, scenarioName }: Props) {
   const scenario = useScenarioStore((s) => s.scenarios[scenarioId]);
   const renameScenario = useScenarioStore((s) => s.renameScenario);
   const setNodePositions = useScenarioStore((s) => s.setNodePositions);
+  const canUndo = useHistoryStore((s) => (s.past[scenarioId]?.length ?? 0) > 0);
+  const canRedo = useHistoryStore((s) => (s.future[scenarioId]?.length ?? 0) > 0);
+  const undo = useHistoryStore((s) => s.undo);
+  const redo = useHistoryStore((s) => s.redo);
   const [copied, setCopied] = useState(false);
   const [laying, setLaying] = useState(false);
 
@@ -31,7 +36,6 @@ export function TopBar({ scenarioId, scenarioName }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Fallback: open a prompt with the URL.
       window.prompt('Copy this share link:', url);
     }
   }, [scenario]);
@@ -46,6 +50,28 @@ export function TopBar({ scenarioId, scenarioName }: Props) {
       setLaying(false);
     }
   }, [scenario, setNodePositions]);
+
+  // Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z (or Cmd+Y) global shortcuts.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const meta = event.metaKey || event.ctrlKey;
+      if (!meta) return;
+      const key = event.key.toLowerCase();
+      if (key === 'z' && !event.shiftKey) {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+          return;
+        event.preventDefault();
+        undo(scenarioId);
+      } else if ((key === 'z' && event.shiftKey) || key === 'y') {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement)
+          return;
+        event.preventDefault();
+        redo(scenarioId);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [scenarioId, undo, redo]);
 
   return (
     <header className="flex h-12 items-center px-4 gap-3">
@@ -62,6 +88,19 @@ export function TopBar({ scenarioId, scenarioName }: Props) {
       <span className="text-[11px] text-fg-muted">· auto-saved</span>
 
       <div className="ml-auto flex items-center gap-1">
+        <IconButton
+          onClick={() => undo(scenarioId)}
+          disabled={!canUndo}
+          title="Undo (⌘Z)"
+          icon={<Undo2 className="h-3.5 w-3.5" />}
+        />
+        <IconButton
+          onClick={() => redo(scenarioId)}
+          disabled={!canRedo}
+          title="Redo (⇧⌘Z)"
+          icon={<Redo2 className="h-3.5 w-3.5" />}
+        />
+        <Separator />
         <ToolbarButton
           onClick={handleLayout}
           disabled={laying || !scenario}
@@ -116,4 +155,32 @@ function ToolbarButton({
       {label}
     </button>
   );
+}
+
+function IconButton({
+  onClick,
+  disabled,
+  title,
+  icon,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  title: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="p-1.5 rounded text-fg-muted hover:text-fg hover:bg-bg-elev transition disabled:opacity-30"
+    >
+      {icon}
+    </button>
+  );
+}
+
+function Separator() {
+  return <span className="mx-1 h-5 w-px bg-border" />;
 }
