@@ -7,18 +7,27 @@ export interface AkiraNodeData extends Record<string, unknown> {
   node: AkiraNode;
   isEntry: boolean;
   isObjective: boolean;
+  heatmapIntensity: number | null;
 }
 
 export type AkiraFlowNode = RFNode<AkiraNodeData, 'akira'>;
 
 export function AkiraNodeView({ data, selected }: NodeProps<AkiraFlowNode>) {
   const Icon = nodeIcon(data.node.type);
+  const heat = data.heatmapIntensity;
+  const heatStyle =
+    heat !== null && heat > 0
+      ? {
+          boxShadow: `0 0 0 ${1 + heat * 3}px var(--color-warning)`,
+        }
+      : undefined;
   return (
     <div
+      style={heatStyle}
       className={cn(
         'rounded-lg border bg-bg px-3 py-2 min-w-[160px] shadow-sm transition',
         selected ? 'border-accent ring-1 ring-accent/40' : 'border-border',
-        data.isObjective && 'ring-1 ring-warning',
+        data.isObjective && !heatStyle && 'ring-1 ring-warning',
       )}
     >
       <Handle
