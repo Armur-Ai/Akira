@@ -24,6 +24,10 @@ interface ScenarioStore {
   addNode: (scenarioId: string, node: AkiraNode) => void;
   updateNode: (scenarioId: string, nodeId: string, patch: Partial<AkiraNode>) => void;
   setNodePosition: (scenarioId: string, nodeId: string, position: NodePosition) => void;
+  setNodePositions: (
+    scenarioId: string,
+    updates: ReadonlyArray<{ id: string; position: NodePosition }>,
+  ) => void;
   deleteNodes: (scenarioId: string, nodeIds: readonly string[]) => void;
 
   // Edge ops
@@ -117,6 +121,24 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
         const nodes = [...s.nodes];
         nodes[idx] = { ...existing, position };
         return { ...s, nodes };
+      }),
+    );
+  },
+
+  setNodePositions(scenarioId, updates) {
+    if (updates.length === 0) return;
+    const byId = new Map(updates.map((u) => [u.id, u.position]));
+    set((state) =>
+      replaceScenario(state, scenarioId, (s) => {
+        let changed = false;
+        const nodes = s.nodes.map((n) => {
+          const pos = byId.get(n.id);
+          if (!pos) return n;
+          if (n.position?.x === pos.x && n.position?.y === pos.y) return n;
+          changed = true;
+          return { ...n, position: pos };
+        });
+        return changed ? { ...s, nodes } : s;
       }),
     );
   },

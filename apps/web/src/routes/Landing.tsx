@@ -1,9 +1,10 @@
 import { Scenario } from '@akira/schema';
 import { Trash2, Upload } from 'lucide-react';
 import { nanoid } from 'nanoid';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { examples } from '../examples/index.js';
+import { clearShareFragment, decodeShareFragment } from '../lib/share.js';
 import { useScenarioStore } from '../state/scenario-store.js';
 
 export function Landing() {
@@ -14,6 +15,28 @@ export function Landing() {
   const scenarios = useScenarioStore((s) => s.scenarios);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const sharedHandled = useRef(false);
+
+  useEffect(() => {
+    if (sharedHandled.current) return;
+    if (!window.location.hash.includes('share=')) return;
+    sharedHandled.current = true;
+    (async () => {
+      try {
+        const shared = await decodeShareFragment(window.location.hash);
+        if (!shared) return;
+        const id = `${shared.id}-${nanoid(4)}`;
+        importScenario(id, shared);
+        clearShareFragment();
+        navigate(`/scenario/${id}`);
+      } catch (err) {
+        setImportError(
+          `Shared link is invalid: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        clearShareFragment();
+      }
+    })();
+  }, [importScenario, navigate]);
 
   function handleNew() {
     const id = nanoid(8);

@@ -18,6 +18,7 @@
     "@akira/techniques": "workspace:*",
     "@xyflow/react": "^12.3.5",
     "clsx": "^2.1.1",
+    "elkjs": "^0.9.3",
     "idb-keyval": "^6.2.1",
     "lucide-react": "^0.460.0",
     "nanoid": "^5.0.7",
