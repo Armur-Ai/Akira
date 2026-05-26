@@ -174,3 +174,199 @@ export function downloadMarkdownReport(scenario: Scenario, run: RunResult): void
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+// -------------------- HTML / print variant --------------------
+
+const escapeHtml = (s: string): string =>
+  s.replace(/[&<>"']/g, (c) => {
+    switch (c) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case "'":
+        return '&#39;';
+      default:
+        return c;
+    }
+  });
+
+function pathBlockHtml(path: AttackPath, idx: number, labelOf: (id: string) => string): string {
+  const rows = path.steps
+    .map((step, i) => {
+      const techniques = step.techniqueIds.length
+        ? step.techniqueIds.map((id) => escapeHtml(describeTechnique(id))).join('; ')
+        : '<span class="muted">(none)</span>';
+      return `<tr>
+        <td>${i + 1}</td>
+        <td>${escapeHtml(labelOf(step.from))} → ${escapeHtml(labelOf(step.to))}</td>
+        <td>${techniques}</td>
+        <td>${pct(step.probability)}</td>
+        <td>${step.cost.toFixed(1)}</td>
+      </tr>`;
+    })
+    .join('');
+  return `<h3>Path ${idx + 1} · ${escapeHtml(labelOf(path.entry))} → ${escapeHtml(labelOf(path.objective))}</h3>
+  <p>Score <strong>${path.score.toFixed(3)}</strong> · probability <strong>${pct(path.probability)}</strong> ·
+  detection ${pct(path.detection)} · cost ${path.cost.toFixed(1)} · ${path.steps.length} steps.</p>
+  <table>
+    <thead><tr><th>#</th><th>From → To</th><th>Techniques</th><th>p</th><th>cost</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+export function buildHtmlReport(scenario: Scenario, run: RunResult): string {
+  const labelOf = nodeLabelLookup(scenario);
+  const now = new Date().toISOString();
+
+  const objectiveRows = run.metricsByObjective
+    .map(
+      (m) => `<tr>
+      <td>${escapeHtml(labelOf(m.objective))}</td>
+      <td>${m.reachable ? '✓' : '—'}</td>
+      <td>${pct(m.reachProbability)}</td>
+      <td>${m.pathCount}</td>
+      <td>${m.bestPathScore === null ? '—' : m.bestPathScore.toFixed(3)}</td>
+    </tr>`,
+    )
+    .join('');
+
+  const pathsHtml =
+    run.paths.length > 0
+      ? run.paths
+          .slice(0, 10)
+          .map((p, i) => pathBlockHtml(p, i, labelOf))
+          .join('')
+      : '<p><em>No reachable paths were found for any objective.</em></p>';
+
+  const chokepointsHtml =
+    run.chokepoints.length > 0
+      ? `<h2>Chokepoints</h2>
+        <p>Entities on the largest share of top paths.</p>
+        <table>
+          <thead><tr><th>Kind</th><th>Entity</th><th>Coverage</th><th>Paths</th></tr></thead>
+          <tbody>${run.chokepoints
+            .slice(0, 10)
+            .map((c) => {
+              const label = c.kind === 'node' ? labelOf(c.id) : c.id;
+              return `<tr>
+                <td>${c.kind}</td>
+                <td>${escapeHtml(label)}</td>
+                <td>${pct(c.coverageRatio)}</td>
+                <td>${c.pathsCovered}</td>
+              </tr>`;
+            })
+            .join('')}</tbody>
+        </table>`
+      : '';
+
+  const activeControls = scenario.controls.filter((c) => c.enabled);
+  const controlsHtml =
+    activeControls.length > 0
+      ? `<h2>Active controls</h2>
+        <ul>${activeControls
+          .map(
+            (c) =>
+              `<li><strong>${escapeHtml(c.name)}</strong> — probability × ${c.effect.probabilityMultiplier.toFixed(2)},
+              detection ${c.effect.detectionDelta >= 0 ? '+' : ''}${c.effect.detectionDelta.toFixed(2)},
+              cost +${c.effect.costDelta.toFixed(1)}${
+                c.summary ? `<br><span class="muted">${escapeHtml(c.summary)}</span>` : ''
+              }</li>`,
+          )
+          .join('')}</ul>`
+      : '';
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(scenario.name)} — Akira report</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; max-width: 880px; margin: 40px auto; padding: 0 24px; color: #111; line-height: 1.55; }
+    h1 { margin: 0 0 6px; font-size: 28px; }
+    h2 { margin-top: 32px; font-size: 18px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+    h3 { margin-top: 24px; font-size: 15px; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0 20px; font-size: 13px; }
+    th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; font-weight: 600; }
+    p { margin: 8px 0 12px; }
+    ul { margin: 4px 0 16px; padding-left: 22px; }
+    .meta { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: #666; margin: 6px 0 24px; }
+    .muted { color: #666; }
+    em { color: #555; }
+    @media print {
+      body { margin: 0; padding: 16px 22px; font-size: 12px; }
+      h1 { font-size: 22px; }
+      h2 { font-size: 16px; margin-top: 22px; }
+      h3 { font-size: 14px; margin-top: 16px; page-break-after: avoid; }
+      table { font-size: 11px; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(scenario.name)}</h1>
+  <p class="muted"><em>Akira attack-path simulation report</em></p>
+  ${scenario.description ? `<p>${escapeHtml(scenario.description)}</p>` : ''}
+  <p class="meta">Generated ${now} · scenario v${scenario.version} · wall time ${run.wallTimeMs}ms · mode <code>${run.mode}</code> · seed ${run.seed} · iterations ${run.iterations}</p>
+
+  <h2>Scenario shape</h2>
+  <ul>
+    <li>${scenario.nodes.length} nodes, ${scenario.edges.length} edges</li>
+    <li>${scenario.entryPoints.length} entry point(s), ${scenario.objectives.length} objective(s)</li>
+    <li>${activeControls.length} active control(s)</li>
+  </ul>
+
+  ${controlsHtml}
+
+  <h2>Per-objective results</h2>
+  <table>
+    <thead><tr><th>Objective</th><th>Reachable</th><th>Reach probability</th><th>Paths</th><th>Best score</th></tr></thead>
+    <tbody>${objectiveRows}</tbody>
+  </table>
+
+  <h2>Top attack paths</h2>
+  ${pathsHtml}
+
+  ${chokepointsHtml}
+
+  ${
+    run.unreachable.length > 0
+      ? `<h2>Unreachable objectives</h2><ul>${run.unreachable
+          .map((id) => `<li>${escapeHtml(labelOf(id))}</li>`)
+          .join('')}</ul>`
+      : ''
+  }
+
+  <hr style="margin-top: 40px; border: 0; border-top: 1px solid #ddd;">
+  <p class="muted">Akira · attack-path simulator for the post-AI world.</p>
+
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () { window.print(); }, 200);
+    });
+  </script>
+</body>
+</html>`;
+}
+
+export function openPrintableReport(scenario: Scenario, run: RunResult): void {
+  const html = buildHtmlReport(scenario, run);
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank', 'noopener,noreferrer');
+  if (!win) {
+    // Pop-up blocked — fall back to download.
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${scenario.id}-${new Date().toISOString().slice(0, 10)}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  // Release after the new window has had time to load.
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
