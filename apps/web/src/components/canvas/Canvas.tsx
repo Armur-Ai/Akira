@@ -14,9 +14,12 @@ import {
 import { nanoid } from 'nanoid';
 import { useCallback, useMemo } from 'react';
 import { edgeColour } from '../../lib/edge-styles.js';
+import { lintScenario } from '../../lib/lint.js';
 import { useRunStore } from '../../state/run-store.js';
 import { useScenarioStore } from '../../state/scenario-store.js';
 import { type AkiraFlowNode, type AkiraNodeData, AkiraNodeView } from './AkiraNode.js';
+
+const EMPTY_LINT: readonly string[] = Object.freeze([]);
 
 const NODE_TYPES = { akira: AkiraNodeView } as const;
 const PALETTE_NODE_MIME = 'application/x-akira-node-type';
@@ -85,16 +88,20 @@ function InnerCanvas({ scenarioId }: Props) {
     return map;
   }, [run, overlay]);
 
+  const lint = useMemo(() => (scenario ? lintScenario(scenario) : null), [scenario]);
+
   const flowNodes = useMemo<AkiraFlowNode[]>(() => {
     if (!scenario) return [];
     const entries = new Set(scenario.entryPoints);
     const objectives = new Set(scenario.objectives);
     return scenario.nodes.map((node) => {
+      const nodeIssues = lint?.byNodeId.get(node.id);
       const data: AkiraNodeData = {
         node,
         isEntry: entries.has(node.id),
         isObjective: objectives.has(node.id),
         heatmapIntensity: chokepointNodeRatio?.get(node.id) ?? null,
+        lintMessages: nodeIssues ? nodeIssues.map((i) => i.message) : EMPTY_LINT,
       };
       return {
         id: node.id,
@@ -103,7 +110,7 @@ function InnerCanvas({ scenarioId }: Props) {
         data,
       };
     });
-  }, [scenario, chokepointNodeRatio]);
+  }, [scenario, chokepointNodeRatio, lint]);
 
   const flowEdges = useMemo<RFEdge[]>(() => {
     if (!scenario) return [];
@@ -111,10 +118,12 @@ function InnerCanvas({ scenarioId }: Props) {
       const isHighlighted = highlightedEdges?.has(edge.id) ?? false;
       const isDimmed = highlightedEdges !== null && !isHighlighted;
       const heat = chokepointEdgeRatio?.get(edge.id);
+      const hasLint = lint?.byEdgeId.has(edge.id) ?? false;
 
       let stroke = edgeColour(edge.kind);
       let strokeWidth = 1 + edge.probability * 2;
       let opacity = 1;
+      const strokeDasharray = hasLint ? '6 4' : undefined;
 
       if (chokepointEdgeRatio && !isHighlighted) {
         if (heat !== undefined) {
@@ -140,14 +149,14 @@ function InnerCanvas({ scenarioId }: Props) {
         target: edge.to,
         label: `${edge.kind} · p=${edge.probability.toFixed(2)}`,
         animated: isHighlighted,
-        style: { stroke, strokeWidth, opacity },
+        style: { stroke, strokeWidth, opacity, strokeDasharray },
         labelStyle: { fill: 'var(--color-fg-muted)', fontSize: 10 },
         labelBgStyle: { fill: 'var(--color-bg-elev)' },
         labelBgPadding: [4, 2] as [number, number],
         labelBgBorderRadius: 4,
       };
     });
-  }, [scenario, highlightedEdges, chokepointEdgeRatio]);
+  }, [scenario, highlightedEdges, chokepointEdgeRatio, lint]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<AkiraFlowNode>[]) => {

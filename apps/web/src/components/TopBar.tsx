@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { autoLayout } from '../lib/auto-layout.js';
 import { downloadScenario } from '../lib/download.js';
+import { lintScenario } from '../lib/lint.js';
 import { buildShareUrl } from '../lib/share.js';
 import { useHistoryStore } from '../state/history-store.js';
 import { useScenarioStore } from '../state/scenario-store.js';
@@ -87,6 +88,7 @@ export function TopBar({ scenarioId, scenarioName }: Props) {
         onChange={(e) => renameScenario(scenarioId, e.target.value)}
       />
       <span className="text-[11px] text-fg-muted">· auto-saved</span>
+      <LintBadge scenarioId={scenarioId} />
 
       <div className="ml-auto flex items-center gap-1">
         <IconButton
@@ -185,4 +187,20 @@ function IconButton({
 
 function Separator() {
   return <span className="mx-1 h-5 w-px bg-border" />;
+}
+
+function LintBadge({ scenarioId }: { scenarioId: string }) {
+  const scenario = useScenarioStore((s) => s.scenarios[scenarioId]);
+  if (!scenario) return null;
+  const result = lintScenario(scenario);
+  if (result.issues.length === 0) return null;
+  const title = result.issues.map((i) => `· ${i.message}`).join('\n');
+  return (
+    <span
+      className="text-[11px] text-warning border border-warning/40 bg-warning/10 px-1.5 py-0.5 rounded"
+      title={title}
+    >
+      {result.issues.length} {result.issues.length === 1 ? 'issue' : 'issues'}
+    </span>
+  );
 }
