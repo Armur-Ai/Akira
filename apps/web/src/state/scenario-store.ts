@@ -18,6 +18,7 @@ interface ScenarioStore {
   // Scenario lifecycle
   createScenario: (id: string, name: string) => ScenarioType;
   importScenario: (id: string, scenario: ScenarioType) => void;
+  restoreSnapshot: (id: string, scenario: ScenarioType) => void;
   renameScenario: (id: string, name: string) => void;
   deleteScenario: (id: string) => void;
 
@@ -80,6 +81,14 @@ export const useScenarioStore = create<ScenarioStore>((set) => ({
       scenarios: { ...state.scenarios, [id]: { ...scenario, id } },
     }));
     useHistoryStore.getState().reset(id);
+  },
+
+  // Like importScenario but records history so the user can undo a restore.
+  restoreSnapshot(id, scenario) {
+    recordHistory(id);
+    set((state) => ({
+      scenarios: { ...state.scenarios, [id]: { ...scenario, id } },
+    }));
   },
 
   renameScenario(id, name) {

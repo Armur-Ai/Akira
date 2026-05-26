@@ -6,6 +6,7 @@ import { downloadScenario } from '../lib/download.js';
 import { buildShareUrl } from '../lib/share.js';
 import { useHistoryStore } from '../state/history-store.js';
 import { useScenarioStore } from '../state/scenario-store.js';
+import { SnapshotsPanel } from './SnapshotsPanel.js';
 import { RunPanel } from './run/RunPanel.js';
 
 interface Props {
@@ -117,6 +118,7 @@ export function TopBar({ scenarioId, scenarioName }: Props) {
           }
           label={copied ? 'Copied' : 'Share'}
         />
+        <SnapshotsPanel scenarioId={scenarioId} />
         <ToolbarButton
           onClick={handleExport}
           disabled={!scenario}
