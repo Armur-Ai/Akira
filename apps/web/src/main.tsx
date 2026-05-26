@@ -6,6 +6,7 @@ import { loadAllScenarios } from './persistence/db.js';
 import { loadSnapshots } from './persistence/snapshots-db.js';
 import { useScenarioStore } from './state/scenario-store.js';
 import { useSnapshotsStore } from './state/snapshots-store.js';
+import { useSyncStore } from './state/sync-store.js';
 import './index.css';
 
 const root = document.getElementById('root');
@@ -20,6 +21,8 @@ async function boot() {
     useSnapshotsStore.setState({ snapshots });
   }
   startAutoSave();
+  // Fire-and-forget session check; doesn't block render.
+  void useSyncStore.getState().bootstrap();
 }
 
 void boot();

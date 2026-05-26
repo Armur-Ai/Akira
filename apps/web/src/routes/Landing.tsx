@@ -3,6 +3,7 @@ import { Trash2, Upload } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SyncStatus } from '../components/SyncStatus.js';
 import { examples } from '../examples/index.js';
 import { clearShareFragment, decodeShareFragment } from '../lib/share.js';
 import { useScenarioStore } from '../state/scenario-store.js';
@@ -66,7 +67,10 @@ export function Landing() {
   const recent = Object.values(scenarios).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <main className="min-h-full overflow-y-auto py-12">
+    <main className="min-h-full overflow-y-auto py-12 relative">
+      <div className="absolute top-4 right-6">
+        <SyncStatus />
+      </div>
       <div className="mx-auto w-full max-w-4xl px-6 space-y-12">
         <div className="space-y-3 text-center">
           <h1 className="text-6xl font-semibold tracking-tight">Akira</h1>
