@@ -13,11 +13,24 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !CI,
-    timeout: 60_000,
-  },
+  webServer: [
+    {
+      command: 'pnpm --filter @akira/api dev',
+      url: 'http://localhost:3001/health',
+      reuseExistingServer: !CI,
+      timeout: 60_000,
+      env: {
+        AKIRA_DB: ':memory:',
+        PORT: '3001',
+        AKIRA_WEB_ORIGIN: 'http://localhost:5173',
+      },
+    },
+    {
+      command: 'pnpm dev',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !CI,
+      timeout: 60_000,
+    },
+  ],
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });
