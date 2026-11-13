@@ -70,8 +70,16 @@ export function importAssessmentSnapshot(input: unknown): ScenarioT {
   }
   const p = env.payload;
 
+  // Drop edges whose endpoints aren't real nodes. A dangling edge would pass the
+  // loose Scenario schema but break graph building (buildGraph), so — in keeping
+  // with the importer's coerce-don't-crash contract — we skip it rather than
+  // fail the whole import. The swarm's own snapshot producer never emits these;
+  // this guards hand-edited or third-party envelopes.
+  const nodeIds = new Set(p.nodes.map((n) => n.id));
+  const keptEdges = p.edges.filter((e) => nodeIds.has(e.from) && nodeIds.has(e.to));
+
   const objectives = [...new Set(p.paths.map((x) => x.objective).filter((o) => o.length > 0))];
-  const incoming = new Set(p.edges.map((e) => e.to));
+  const incoming = new Set(keptEdges.map((e) => e.to));
   const entryPoints = p.nodes.map((n) => n.id).filter((id) => !incoming.has(id));
 
   return Scenario.parse({
@@ -87,7 +95,7 @@ export function importAssessmentSnapshot(input: unknown): ScenarioT {
       criticality: clamp01(n.criticality ?? 0),
       meta: n.meta ?? {},
     })),
-    edges: p.edges.map((e) => ({
+    edges: keptEdges.map((e) => ({
       id: e.id,
       from: e.from,
       to: e.to,

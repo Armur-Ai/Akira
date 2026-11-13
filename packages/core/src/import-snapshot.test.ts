@@ -58,3 +58,31 @@ describe('importAssessmentSnapshot', () => {
     );
   });
 });
+
+describe('importAssessmentSnapshot — dangling edges', () => {
+  it('drops edges whose endpoints are not real nodes', () => {
+    const env = {
+      version: '0.1.0',
+      namespace: 'swarm',
+      kind: 'AssessmentSnapshot',
+      payload: {
+        snapshot_id: 'dangling',
+        nodes: [
+          { id: 'a', type: 'service', label: 'A' },
+          { id: 'b', type: 'data', label: 'B' },
+        ],
+        edges: [
+          { id: 'a->b', from: 'a', to: 'b', kind: 'data-flow' },
+          { id: 'a->ghost', from: 'a', to: 'ghost', kind: 'data-flow' }, // dangling
+          { id: 'ghost->b', from: 'ghost', to: 'b', kind: 'data-flow' }, // dangling
+        ],
+        paths: [],
+      },
+    };
+    const scenario = importAssessmentSnapshot(env);
+    expect(scenario.edges.map((e) => e.id)).toEqual(['a->b']);
+    // 'a' has no kept incoming edge -> it's an entry point; 'b' is not.
+    expect(scenario.entryPoints).toContain('a');
+    expect(scenario.entryPoints).not.toContain('b');
+  });
+});
