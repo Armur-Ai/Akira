@@ -5,6 +5,8 @@ export { buildGraph, probabilityToWeight } from './build-graph.js';
 export { importAssessmentSnapshot } from './import-snapshot.js';
 export type { AkiraGraph, EdgeAttrs, NodeAttrs } from './build-graph.js';
 export { computeChokepoints } from './chokepoints.js';
+export { computeFixSet } from './fix-set.js';
+export type { FixSet, FixSetItem } from './fix-set.js';
 export { dijkstra } from './shortest-paths.js';
 export type { DijkstraOptions, PathResult } from './shortest-paths.js';
 export { yensKShortestPaths } from './k-shortest-paths.js';
