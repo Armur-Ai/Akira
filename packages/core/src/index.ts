@@ -3,6 +3,8 @@ export type { EffectiveEdge } from './controls.js';
 export { assertScenarioValid, ScenarioValidationError } from './assert.js';
 export { buildGraph, probabilityToWeight } from './build-graph.js';
 export { importAssessmentSnapshot } from './import-snapshot.js';
+export { exportAssessmentSnapshot } from './export-snapshot.js';
+export type { ExportOptions } from './export-snapshot.js';
 export type { AkiraGraph, EdgeAttrs, NodeAttrs } from './build-graph.js';
 export { computeChokepoints } from './chokepoints.js';
 export { computeFixSet } from './fix-set.js';
